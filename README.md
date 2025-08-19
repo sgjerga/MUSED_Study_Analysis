@@ -2,6 +2,8 @@
 
 This repository contains a fully reproducible, baseline-only analysis of the publicly available [MUSED](https://heidata.uni-heidelberg.de/dataverse/mused) dataset based on [Gaebel et al. 2025](https://pmc.ncbi.nlm.nih.gov/articles/PMC11929563/) study. The work asks a clinic-facing question: *using only information known at intake*, can baseline data help **(a)** identify participants likely to achieve a large improvement in depressive symptoms with music therapy and **(b)** anticipate post-treatment symptom levels? The pipeline proceeds from data cleaning and EMA summarization, through feature engineering, repeated cross-validated model training, and model interpretability (SHAP, PDPs) and calibration—ending with clear figures and tables suitable for reporting.
 
+“[MUSED](https://heidata.uni-heidelberg.de/dataverse/mused)” by [Institute of Medical Psychology at the Medical Faculty Heidelberg of Heidelberg University], [heiDATA](https://heidata.uni-heidelberg.de/dataverse/medpsych) ([2025]), used under CC BY 4.0; <[link to source](https://creativecommons.org/licenses/by/4.0/)>.
+
 ---
 
 ## Summary of measurements & features in the MUSED dataset
