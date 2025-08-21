@@ -10,7 +10,7 @@ library("ggplot2")
 library("glue")
 library("broom")
 
-# ---- load baked designs from 02_feature_engineering_mused.R ----
+# Load baked designs from 02_feature_engineering_mused.R
 cls_obj <- readr::read_rds("obj/cls_mt_design.rds")  # list: data, design, recipe, prep
 reg_obj <- readr::read_rds("obj/reg_all_design.rds")
 
@@ -25,7 +25,7 @@ stopifnot("responder_bdi_post_f" %in% names(X_cls))
 # Regression: outcome is bdi_post
 stopifnot("bdi_post" %in% names(X_reg))
 
-# ---- resampling ----
+# Resampling
 # Classification: stratified repeated vfold CV
 set.seed(1)
 folds_cls <- vfold_cv(X_cls, v = 5, repeats = 5, strata = responder_bdi_post_f)
@@ -34,7 +34,7 @@ folds_cls <- vfold_cv(X_cls, v = 5, repeats = 5, strata = responder_bdi_post_f)
 set.seed(2)
 folds_reg <- vfold_cv(X_reg, v = 5, repeats = 5)
 
-# ---- metrics ----
+# Metrics
 metric_set_cls <- metric_set(roc_auc, pr_auc, accuracy, sens, spec)
 metric_set_reg <- metric_set(rmse, mae, rsq)
 
