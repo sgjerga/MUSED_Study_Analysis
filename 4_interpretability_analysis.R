@@ -1,7 +1,6 @@
 # 03_phase2_interpretability_mused.R
 set.seed(1234)
 
-# ---- packages ----
 library(tidyverse)
 library(tidymodels)
 library(vip)
@@ -12,11 +11,11 @@ library(probably)
 library(glue)
 library(broom)
 
-# ---- dirs ----
+# Directories
 if (!dir.exists("output")) dir.create("output")
 if (!dir.exists("output/phase2")) dir.create("output/phase2")
 
-# ---- load baked designs (from Phase 1 / modeling) ----
+# Load baked designs (from Phase 1 / modeling)
 cls_obj <- readr::read_rds("obj/cls_mt_design.rds")   # list: data, design, recipe, prep
 reg_obj <- readr::read_rds("obj/reg_all_design.rds")
 
@@ -26,7 +25,7 @@ X_reg <- reg_obj$design
 stopifnot(all(c("id", "responder_bdi_post_f") %in% names(X_cls)))
 stopifnot("bdi_post" %in% names(X_reg))
 
-# ---- load final (trained) models & tuning results ----
+# Load final (trained) models & tuning results
 final_logit_cls <- readRDS("obj/final_logit_cls.rds") # list: res, best, fit
 final_rf_cls    <- readRDS("obj/final_rf_cls.rds")
 final_xgb_cls   <- readRDS("obj/final_xgb_cls.rds")
@@ -44,7 +43,7 @@ fit_enet_reg  <- extract_fit_parsnip(final_enet_reg$fit)
 fit_rf_reg    <- extract_fit_parsnip(final_rf_reg$fit)
 fit_xgb_reg   <- extract_fit_parsnip(final_xgb_reg$fit)
 
-# ---- predictor-only matrices (drop outcome/id) ----
+# Predictor-only matrices (drop outcome/id)
 pred_cols_cls <- setdiff(names(X_cls), c("id","responder_bdi_post_f"))
 pred_cols_reg <- setdiff(names(X_reg), c("id","bdi_post"))
 X_cls_pred <- X_cls[, pred_cols_cls, drop = FALSE]
@@ -59,7 +58,7 @@ save_plot <- function(p, path, w=9, h=6, dpi=300) ggsave(path, p, width=w, heigh
 #    - RF/ENet: fastshap with predict wrappers
 # =====================================================
 
-## ---- 1A) Classification SHAP ----
+## 1A) Classification SHAP
 # XGB native SHAP for classification (prob of "Responder")
 xgb_cls <- fit_xgb_cls$fit
 Xmat_cls <- as.matrix(X_cls_pred)
@@ -151,7 +150,7 @@ p_shap_logit_cls <- shap_rank_logit_cls |>
        x = "Feature", y = "Mean |SHAP|")
 save_plot(p_shap_logit_cls, "output/phase2/cls_enet_shap_top20.png")
 
-## ---- 1B) Regression SHAP ----
+## 1B) Regression SHAP
 xgb_reg <- fit_xgb_reg$fit
 Xmat_reg <- as.matrix(X_reg_pred)
 shap_xgb_reg <- as_tibble(predict(xgb_reg, Xmat_reg, predcontrib = TRUE))
