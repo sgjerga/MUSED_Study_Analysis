@@ -14,7 +14,7 @@ library("glue")
 library("naniar")
 library("broom")
 
-## ---- load processed objects from previous script ----
+## Load processed objects from previous script
 wide_plus   <- readr::read_rds("obj/mused_wide_plus_momentary.rds")
 wide_long   <- readr::read_rds("obj/mused_wide_long.rds")
 narrow_clean<- readr::read_rds("obj/mused_momentary_clean.rds")
@@ -22,7 +22,7 @@ narrow_clean<- readr::read_rds("obj/mused_momentary_clean.rds")
 # quick safety: ensure group label present
 stopifnot("group_f" %in% names(wide_plus))
 
-## ---- baseline predictor set (no leakage) ----
+## Baseline predictor set (no leakage)
 all_cols <- names(wide_plus)
 baseline_cols <- c(
   "bdi_pre","hdrs_pre",
@@ -33,7 +33,7 @@ baseline_cols <- c(
 ) |> unique()
 baseline_cols <- intersect(baseline_cols, all_cols)
 
-## ---- targets ----
+## Targets
 # Classification: BDI responder (>=50% drop pre->post)
 wide_plus <- wide_plus |>
   mutate(
@@ -50,7 +50,7 @@ ancova_refit <- lm(
 )
 wide_plus$bdipost_resid_adj <- resid(ancova_refit)
 
-## ---- assemble modeling tables ----
+## Assemble modeling tables
 # A) Classification: MusicTherapy only
 df_cls_mt <- wide_plus |>
   filter(group_f == "MusicTherapy") |>
@@ -62,8 +62,7 @@ df_reg_all <- wide_plus |>
   dplyr::select(id, group_f, all_of(baseline_cols), bdi_post) |>
   filter(!is.na(bdi_post), !is.na(bdi_pre))
 
-## ---- quick diagnostics ----
-message("\n=== Row counts ===")
+## Quick diagnostics
 message(glue::glue("Classification (MT only): n = {nrow(df_cls_mt)}"))
 message(glue::glue("Regression (all groups): n = {nrow(df_reg_all)}"))
 
@@ -72,7 +71,7 @@ print(df_cls_mt |>
         count(responder_bdi_post_f) |>
         mutate(prop = n/sum(n)))
 
-## ---- missingness screen (handy) ----
+## Missingness screen (handy)
 miss_pct_cls <- sapply(df_cls_mt, function(z) mean(is.na(z))) |> sort(decreasing = TRUE)
 miss_pct_reg <- sapply(df_reg_all, function(z) mean(is.na(z))) |> sort(decreasing = TRUE)
 saveRDS(miss_pct_cls, "obj/feat_missingness_cls.rds")
@@ -80,7 +79,7 @@ saveRDS(miss_pct_reg, "obj/feat_missingness_reg.rds")
 message("\nTop missingness (classification):"); print(head(miss_pct_cls, 10))
 message("\nTop missingness (regression):");     print(head(miss_pct_reg, 10))
 
-## ---- tidymodels recipes (baseline EMA included) ----
+## Tidymodels recipes (baseline EMA included)
 rec_cls <- recipe(responder_bdi_post_f ~ ., data = df_cls_mt) |>
   update_role(id, new_role = "id") |>
   step_zv(all_predictors()) |>
@@ -97,7 +96,7 @@ rec_reg <- recipe(bdi_post ~ ., data = df_reg_all) |>
   step_normalize(all_numeric_predictors()) |>
   step_corr(all_numeric_predictors(), threshold = 0.90)
 
-## ---- prep & bake (for modeling and for safe diagnostics) ----
+## Prep & bake (for modeling and for safe diagnostics)
 prep_cls <- prep(rec_cls)
 prep_reg <- prep(rec_reg)
 
@@ -113,7 +112,7 @@ message("\nSaved:")
 message("- obj/cls_mt_design.rds")
 message("- obj/reg_all_design.rds")
 
-## ---- ROBUST VIF (reference coding + linear model) ----
+## ROBUST VIF (reference coding + linear model)
 # Build a VIF-only recipe using reference coding (no one-hot)
 rec_cls_vif <- recipe(responder_bdi_post_f ~ ., data = df_cls_mt) |>
   update_role(id, new_role = "id") |>
@@ -144,7 +143,7 @@ vif_vals <- car::vif(lm_vif) |> sort(decreasing = TRUE)
 print(head(vif_vals, 15))
 saveRDS(vif_vals, "obj/vif_cls.rds")
 
-## ---- prep design matrices & save (post-recipe) ----
+## Prep design matrices & save (post-recipe)
 prep_cls <- prep(rec_cls)
 prep_reg <- prep(rec_reg)
 
@@ -161,7 +160,7 @@ message("\nSaved:")
 message("- obj/cls_mt_design.rds")
 message("- obj/reg_all_design.rds")
 
-## ---- quick univariate screens (optional but handy) ----
+## Quick univariate screens (optional but handy)
 # AUC for each numeric predictor (classification)
 num_preds_cls <- X_cls |> dplyr::select(where(is.numeric))
 y_cls <- X_cls$responder_bdi_post_f
@@ -175,7 +174,7 @@ auc_tbl <- map_df(setdiff(names(num_preds_cls), "responder_bdi_post_f"), functio
 readr::write_csv(auc_tbl, "obj/univariate_auc_cls.csv")
 print(head(auc_tbl, 15))
 
-## ---- simple permutation importance via ranger (classification) ----
+## Simple permutation importance via ranger (classification)
 # (This is *not* the final model; just to get a feel for influential features.)
 rf_spec <- rand_forest(trees = 1000, mtry = floor(sqrt(ncol(num_preds_cls)-1)), min_n = 5) |>
   set_engine("ranger", importance = "permutation") |>
@@ -196,7 +195,7 @@ p_vi <- vip_tbl |> slice_max(Importance, n = 20) |>
        x = "Feature", y = "Importance")
 ggsave("output/feat_importance_rf_cls.png", p_vi, width = 10, height = 6, dpi = 300)
 
-## ---- engineered composites (if present) ----
+## Engineered composites (if present)
 # Examples: compose totals/ratios if subscales exist. Keep *baseline* only.
 # BMMR total (already present as bmmr_tot_pre in many datasets; if not, sum)
 # If bmmr_*_pre subscales exist but no total, create it now
@@ -217,9 +216,8 @@ baseline_only <- wide_plus |>
   dplyr::select(id, group_f, all_of(baseline_cols), bmmr_tot_pre)
 
 readr::write_rds(baseline_only, "obj/baseline_only_table.rds")
-message("\nBaseline-only feature table saved: obj/baseline_only_table.rds")
 
-## ---- print a few “numbers to interpret” ----
+## Print a few “numbers to interpret”
 message("\n=== Baseline EMA adjustment check (post BDI ANCOVA) ===")
 ancova_fit <- lm(bdi_post ~ bdi_pre + mom_mean_pre + study_cohort + group_f, data = df_reg_all)
 print(broom::tidy(ancova_fit))
