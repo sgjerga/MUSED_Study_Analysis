@@ -8,7 +8,7 @@ library("tidyr")
 library("dplyr")
 library("tidyverse")
 
-## ---- Paths & folders ----
+## Paths & folders
 dir.create("obj", showWarnings = FALSE)
 dir.create("output", showWarnings = FALSE)
 
@@ -16,11 +16,11 @@ path_wide   <- "dataverse_files/MUSED_wide_2023_10-02.csv"
 path_narrow <- "dataverse_files/MUSED_momentary_depression_2023_10-02.csv"
 stopifnot(file.exists(path_wide), file.exists(path_narrow))
 
-## ---- Load raw ----
+## Load raw
 wide_raw   <- readr::read_csv(path_wide,   show_col_types = FALSE)
 narrow_raw <- readr::read_csv(path_narrow, show_col_types = FALSE)
 
-## ---- Clean names & drop placeholder index ----
+## Clean names & drop placeholder index
 # clean_names() lowercases and snake_cases everything: BDI_pre -> bdi_pre
 wide <- wide_raw |>
   janitor::clean_names() |>
@@ -30,7 +30,7 @@ narrow <- narrow_raw |>
   janitor::clean_names() |>
   dplyr::select(-tidyselect::any_of(c("x1", "...1")))
 
-## ---- Basic type fixes / labels ----
+## Basic type fixes / labels
 # Assumption: group 1 = MusicTherapy, 0 = Control
 wide <- wide |>
   dplyr::mutate(
@@ -52,12 +52,11 @@ narrow <- narrow |>
     time_moment       = as.integer(time_moment)
   )
 
-## ---- Sanity check (optional) ----
+## Sanity check
 # names(wide)[1:30]
 # head(select(wide, bdi_pre, bdi_post, bdi_fu, hdrs_pre, hdrs_post))
 
-## ---- Derive outcome deltas and responder flags ----
-# NOTE: Use LOWERCASE variable names (bdi_pre, hdrs_post, ...) created by clean_names()
+## Derive outcome deltas and responder flags
 wide <- wide |>
   dplyr::mutate(
     # Absolute change (positive = improvement if higher score = worse)
@@ -76,14 +75,11 @@ wide <- wide |>
     responder_hdrs_post = dplyr::if_else(!is.na(hdrs_pct_post), hdrs_pct_post >= 0.50, NA)
   )
 
-## ---- Done (up to the previous error point) ----
-message("Clean names applied and deltas/responders computed successfully.")
 
-
-## ---- Quick diagnostics (what EMA phases do we have?) ----
+## Quick diagnostics
 narrow |> count(time_pre_post, time_pre_post_f) |> arrange(time_pre_post)
 
-## ---- Robust EMA summaries (handles missing pre/post) ----
+## Robust EMA summaries (handles missing pre/post)
 library(tidyr)
 library(dplyr)
 
@@ -115,7 +111,7 @@ mom_summary <- mom_summary_complete |>
     mom_median_delta_post = mom_median_pre - mom_median_post
   )
 
-## ---- Optional within-day slopes (also robust to missing phases) ----
+## Optional within-day slopes (also robust to missing phases)
 mom_slopes_raw <- narrow |>
   group_by(id, time_pre_post_f, time_day) |>
   summarise(
@@ -141,7 +137,7 @@ mom_slopes <- mom_slopes_complete |>
   ) |>
   mutate(slope_mean_delta_post = slope_mean_pre - slope_mean_post)
 
-## ---- Combine EMA summaries and continue as before ----
+## Combine EMA summaries and continue as before
 mom_summary_full <- mom_summary |>
   left_join(mom_slopes, by = "id")
 
@@ -149,7 +145,7 @@ wide_plus <- wide |>
   left_join(mom_summary_full, by = "id")
 
 
-## ---- Long format for repeated outcomes (BDI & HDRS) ----
+## Long format for repeated outcomes (BDI & HDRS)
 time_map <- tibble::tibble(
   timepoint = c("pre","post","fu"),
   time_num  = c(0, 1, 2)
@@ -165,7 +161,7 @@ wide_long <- wide |>
   dplyr::left_join(time_map, by = "timepoint") |>
   dplyr::arrange(id, time_num)
 
-## ---- Save processed objects ----
+## Save processed objects
 readr::write_rds(narrow,           "obj/mused_momentary_clean.rds")
 readr::write_rds(mom_summary_full, "obj/mused_momentary_summary.rds")
 readr::write_rds(wide_plus,        "obj/mused_wide_plus_momentary.rds")
@@ -175,7 +171,7 @@ readr::write_rds(wide_long,        "obj/mused_wide_long.rds")
 readr::write_csv(mom_summary_full, "obj/mused_momentary_summary.csv")
 readr::write_csv(wide_long,        "obj/mused_wide_long.csv")
 
-## ---- QC plots ----
+## QC plots
 theme_set(ggplot2::theme_minimal(base_size = 12))
 
 # 1) BDI trajectories by group
